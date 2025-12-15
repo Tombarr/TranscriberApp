@@ -15,27 +15,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Swift
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: '6.0'
-
-      - name: Verify macOS version
-        run: sw_vers
+      - name: Verify build environment
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
 
       - name: Build TranscriberCLI
         run: |
           cd TranscriberCLI/
           swift build -c release
-        env:
-          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
       - name: Build TranscriberApp
         run: |
           cd TranscriberApp/
           swift build -c release
-        env:
-          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
       - name: Package CLI binary
         run: |
