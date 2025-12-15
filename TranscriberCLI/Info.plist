@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist>
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key><string>com.barrasso.TranscriberCLI</string>
+  <key>CFBundleName</key><string>TranscriberCLI</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>Transcribe audio files offline from the command line.</string>
+</dict>
+</plist>

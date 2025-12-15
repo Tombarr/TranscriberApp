@@ -1,0 +1,163 @@
+name: Release TranscriberCLI and TranscriberApp
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (e.g., v1.0.0)
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-and-release:
+    name: Build and Release TranscriberCLI and TranscriberApp
+    runs-on: macos-26  # macOS 26 (Tahoe)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.0'
+
+      - name: Verify macOS version
+        run: sw_vers
+
+      - name: Build TranscriberCLI
+        run: |
+          cd TranscriberCLI/
+          swift build -c release
+        env:
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+
+      - name: Build TranscriberApp
+        run: |
+          cd TranscriberApp/
+          swift build -c release
+        env:
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+
+      - name: Package CLI binary
+        run: |
+          cd TranscriberCLI/.build/release
+
+          # Package as tar.gz
+          tar -czf TranscriberCLI-macos.tar.gz TranscriberCLI
+
+          # Calculate checksum
+          shasum -a 256 TranscriberCLI-macos.tar.gz > TranscriberCLI-macos.tar.gz.sha256
+
+          # Move to artifacts directory
+          mkdir -p ../../../../artifacts
+          mv TranscriberCLI-macos.tar.gz ../../../../artifacts/
+          mv TranscriberCLI-macos.tar.gz.sha256 ../../../../artifacts/
+
+      - name: Package TranscriberApp as .app bundle
+        run: |
+          # Create .app bundle structure
+          mkdir -p artifacts/Transcriber.app/Contents/MacOS
+          mkdir -p artifacts/Transcriber.app/Contents/Resources
+
+          # Copy the binary
+          cp TranscriberApp/.build/release/Transcriber artifacts/Transcriber.app/Contents/MacOS/
+
+          # Copy Info.plist
+          cp TranscriberApp/Info.plist artifacts/Transcriber.app/Contents/
+
+          # Copy entitlements (for reference)
+          cp TranscriberApp/Transcriber.entitlements artifacts/Transcriber.app/Contents/Resources/
+
+          # Make the binary executable
+          chmod +x artifacts/Transcriber.app/Contents/MacOS/Transcriber
+
+          # Create a zip archive of the .app
+          cd artifacts
+          zip -r Transcriber.app.zip Transcriber.app
+
+          # Calculate checksum
+          shasum -a 256 Transcriber.app.zip > Transcriber.app.zip.sha256
+
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            artifacts/TranscriberCLI-macos.tar.gz
+            artifacts/TranscriberCLI-macos.tar.gz.sha256
+            artifacts/Transcriber.app.zip
+            artifacts/Transcriber.app.zip.sha256
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## Transcriber Release
+
+            This release includes both the CLI tool and GUI application for macOS.
+
+            ### Requirements
+            - macOS 26.0+ (macOS Tahoe)
+
+            ---
+
+            ## TranscriberCLI (Command Line Tool)
+
+            ### Installation
+            ```bash
+            # Download and extract
+            tar -xzf TranscriberCLI-macos.tar.gz
+
+            # Verify checksum (optional)
+            shasum -a 256 -c TranscriberCLI-macos.tar.gz.sha256
+
+            # Make executable
+            chmod +x TranscriberCLI
+
+            # Move to PATH (optional)
+            sudo mv TranscriberCLI /usr/local/bin/
+            ```
+
+            ### Usage
+            ```bash
+            TranscriberCLI --input-path <audio_file> \
+              --output-path <output.srt> \
+              --format <srt|txt> \
+              --locale <language_code>
+            ```
+
+            Example:
+            ```bash
+            TranscriberCLI --input-path ABR123.mp3 \
+              --output-path ABC123.srt \
+              --format srt \
+              --locale en_US
+            ```
+
+            ---
+
+            ## Transcriber.app (GUI Application)
+
+            ### Installation
+            ```bash
+            # Download and extract
+            unzip Transcriber.app.zip
+
+            # Verify checksum (optional)
+            shasum -a 256 -c Transcriber.app.zip.sha256
+
+            # Move to Applications folder
+            mv Transcriber.app /Applications/
+            ```
+
+            ### Usage
+            Launch the application from your Applications folder or Spotlight. The GUI provides an intuitive interface for transcribing audio files.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Transcriber-Release-Artifacts
+          path: artifacts/
+          retention-days: 30
