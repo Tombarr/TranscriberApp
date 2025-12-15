@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleExecutable</key>
-	<string>TranscriberApp</string>
+	<string>Transcriber</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.barrasso.transcriber</string>
 	<key>CFBundleInfoDictionaryVersion</key>
