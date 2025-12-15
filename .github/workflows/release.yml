@@ -10,6 +10,8 @@ jobs:
   build-and-release:
     name: Build and Release TranscriberCLI and TranscriberApp
     runs-on: macos-26  # macOS 26 (Tahoe)
+    permissions:
+      contents: write  # Required to create releases and upload assets
 
     steps:
       - name: Checkout code
